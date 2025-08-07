@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: inventory-backend-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_HOST
+        value: localhost
+      - key: DATABASE_PORT
+        value: 3306
+      - key: DATABASE_USER
+        value: u875409848_vilar
+      - key: DATABASE_PASSWORD
+        value: 6xw;kmmXC$
+      - key: DATABASE_NAME
+        value: u875409848_vilar

@@ -7,13 +7,27 @@ module.exports = db = {};
 initialize();
 
 async function initialize() {
+    // Use environment variables for production, config.json for development
+    const dbConfig = process.env.NODE_ENV === 'production' ? {
+        host: process.env.DATABASE_HOST || config.database.host,
+        port: process.env.DATABASE_PORT || config.database.port,
+        user: process.env.DATABASE_USER || config.database.user,
+        password: process.env.DATABASE_PASSWORD || config.database.password,
+        database: process.env.DATABASE_NAME || config.database.database
+    } : config.database;
+
     // create db if it doesn't already exist
-    const { host, port, user, password, database } = config.database;
+    const { host, port, user, password, database } = dbConfig;
     const connection = await mysql.createConnection({ host, port, user, password });
     await connection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\`;`);
 
     // connect to db
-    const sequelize = new Sequelize(database, user, password, { dialect: 'mysql' });
+    const sequelize = new Sequelize(database, user, password, { 
+        dialect: 'mysql',
+        host: host,
+        port: port,
+        logging: process.env.NODE_ENV === 'production' ? false : console.log
+    });
 
     // init models and add them to the exported db object
     db.Account = require('../accounts/account.model')(sequelize);
