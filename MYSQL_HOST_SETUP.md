@@ -127,3 +127,4 @@ And in Render environment variables:
 ```
 DATABASE_HOST=sql.myapp.infinityfreeapp.com
 ```
+
