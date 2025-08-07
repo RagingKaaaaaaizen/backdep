@@ -16,7 +16,7 @@
    In Render dashboard, add these environment variables:
    ```
    NODE_ENV=production
-   DATABASE_HOST=localhost
+   DATABASE_HOST=153.92.15.31
    DATABASE_PORT=3306
    DATABASE_USER=u875409848_vilar
    DATABASE_PASSWORD=6xw;kmmXC$
