@@ -52,3 +52,4 @@ If your hosting provider won't allow external connections, you have options:
 The good news is your database and tables are ready! Once the connection is fixed, your app will work perfectly.
 
 **Next step: Contact your hosting provider about enabling external connections.**
+

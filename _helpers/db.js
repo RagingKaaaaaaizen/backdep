@@ -56,8 +56,23 @@ async function initialize() {
                 },
                 dialectOptions: {
                     connectTimeout: 15000,
-                    timeout: 15000
-                }
+                    timeout: 15000,
+                    // Fix for Railway MySQL compatibility
+                    supportBigNumbers: true,
+                    bigNumberStrings: true,
+                    // Disable strict mode for better compatibility
+                    strict: false,
+                    // Handle VIRTUAL data type issue
+                    typeCast: function (field, next) {
+                        if (field.type === 'NEWDECIMAL') {
+                            const value = field.string();
+                            return (value === null) ? null : Number(value);
+                        }
+                        return next();
+                    }
+                },
+                // Disable timezone handling for better compatibility
+                timezone: '+00:00'
             });
 
             // Test the connection
@@ -163,8 +178,8 @@ async function initialize() {
             db.Employee.hasMany(db.Request, { foreignKey: 'employeeId' });
             db.Request.belongsTo(db.Employee, { foreignKey: 'employeeId' });
 
-            // sync all models with database
-            await sequelize.sync({ alter: true }); // Use alter to preserve existing data
+            // sync all models with database - use force: false for Railway compatibility
+            await sequelize.sync({ force: false }); // Don't use alter to avoid VIRTUAL issues
 
             // expose sequelize instance
             db.sequelize = sequelize;

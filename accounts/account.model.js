@@ -31,10 +31,6 @@ function model(sequelize) {
             type: DataTypes.ENUM('Active', 'Inactive'),
             allowNull: false,
             defaultValue: 'Active'
-        },
-        isVerified: {
-            type: DataTypes.VIRTUAL,
-            get() { return !!(this.verified || this.passwordReset); }
         }
     };
 
@@ -46,6 +42,11 @@ function model(sequelize) {
         hooks: {
             beforeUpdate: (account) => {
                 account.updated = new Date(); // Auto update timestamp
+            }
+        },
+        getterMethods: {
+            isVerified() {
+                return !!(this.verified || this.passwordReset);
             }
         }
     };

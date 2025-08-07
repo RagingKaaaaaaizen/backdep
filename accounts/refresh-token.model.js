@@ -8,19 +8,19 @@ module.exports = (sequelize) => {
         createdByIp: { type: DataTypes.STRING },
         revoked: { type: DataTypes.DATE },
         revokedByIp: { type: DataTypes.STRING },
-        replacedByToken: { type: DataTypes.STRING },
-        isExpired: {
-            type: DataTypes.VIRTUAL,
-            get() { return Date.now() >= this.expires; }
-        },
-        isActive: {
-            type: DataTypes.VIRTUAL,
-            get() { return !this.revoked && !this.isExpired; }
-        }
+        replacedByToken: { type: DataTypes.STRING }
     };
 
     const options = {
-        timestamps: false
+        timestamps: false,
+        getterMethods: {
+            isExpired() {
+                return Date.now() >= this.expires;
+            },
+            isActive() {
+                return !this.revoked && !this.isExpired;
+            }
+        }
     };
 
     return sequelize.define('RefreshToken', attributes, options);
