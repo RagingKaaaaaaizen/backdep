@@ -9,7 +9,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_HOST
-        value: localhost
+        value: 153.92.15.31
       - key: DATABASE_PORT
         value: 3306
       - key: DATABASE_USER
