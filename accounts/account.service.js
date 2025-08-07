@@ -25,7 +25,16 @@ module.exports = {
     deactivateAccount
 };
 
+// Helper function to check if database is available
+function checkDatabase() {
+    if (!db.Account) {
+        throw { message: 'Database is not connected. Please contact support.' };
+    }
+}
+
 async function authenticate({ email, password, ipAddress }) {
+    checkDatabase();
+    
     // Always lowercase emails for consistency
     email = email.toLowerCase();
 
@@ -61,6 +70,8 @@ async function authenticate({ email, password, ipAddress }) {
 }
 
 async function refreshToken({ token, ipAddress }) {
+    checkDatabase();
+    
     const refreshToken = await getRefreshToken(token);
     const account = await refreshToken.getAccount();
 
@@ -81,6 +92,8 @@ async function refreshToken({ token, ipAddress }) {
 }
 
 async function revokeToken({ token, ipAddress }) {
+    checkDatabase();
+    
     const refreshToken = await getRefreshToken(token);
     refreshToken.revoked = Date.now();
     refreshToken.revokedByIp = ipAddress;
@@ -88,6 +101,8 @@ async function revokeToken({ token, ipAddress }) {
 }
 
 async function register(params, origin) {
+    checkDatabase();
+    
     // Normalize email to lowercase
     params.email = params.email.toLowerCase();
 
@@ -125,6 +140,8 @@ async function register(params, origin) {
 }
 
 async function verifyEmail({ token }) {
+    checkDatabase();
+    
     const account = await db.Account.findOne({ where: { verificationToken: token } });
     if (!account) throw 'Verification failed';
 
@@ -135,6 +152,8 @@ async function verifyEmail({ token }) {
 }
 
 async function forgotPassword({ email }, origin) {
+    checkDatabase();
+    
     email = email.toLowerCase();
     const account = await db.Account.findOne({ where: { email } });
     if (!account) return;
@@ -146,6 +165,8 @@ async function forgotPassword({ email }, origin) {
 }
 
 async function validateResetToken({ token }) {
+    checkDatabase();
+    
     const account = await db.Account.findOne({
         where: {
             resetToken: token,
@@ -158,6 +179,8 @@ async function validateResetToken({ token }) {
 }
 
 async function resetPassword({ token, password }) {
+    checkDatabase();
+    
     const account = await validateResetToken({ token });
     account.passwordHash = await hash(password);
     account.passwordReset = new Date();
@@ -166,16 +189,22 @@ async function resetPassword({ token, password }) {
 }
 
 async function getAll() {
+    checkDatabase();
+    
     const accounts = await db.Account.findAll();
     return accounts.map(x => basicDetails(x));
 }
 
 async function getById(id) {
+    checkDatabase();
+    
     const account = await getAccount(id);
     return basicDetails(account);
 }
 
 async function create(params) {
+    checkDatabase();
+    
     params.email = params.email.toLowerCase();
 
     if (await db.Account.findOne({ where: { email: params.email } })) {
@@ -192,6 +221,8 @@ async function create(params) {
 }
 
 async function update(id, params) {
+    checkDatabase();
+    
     const account = await getAccount(id);
 
     if (params.email) params.email = params.email.toLowerCase();
@@ -219,11 +250,15 @@ async function update(id, params) {
 }
 
 async function _delete(id) {
+    checkDatabase();
+    
     const account = await getAccount(id);
     await account.destroy();
 }
 
 async function activateAccount(id) {
+    checkDatabase();
+    
     const account = await getAccount(id);
     account.status = 'Active';
     account.updated = new Date();
@@ -232,6 +267,8 @@ async function activateAccount(id) {
 }
 
 async function deactivateAccount(id) {
+    checkDatabase();
+    
     const account = await getAccount(id);
     account.status = 'Inactive';
     account.updated = new Date();
@@ -242,12 +279,16 @@ async function deactivateAccount(id) {
 // Helper functions
 
 async function getAccount(id) {
+    checkDatabase();
+    
     const account = await db.Account.findByPk(id);
     if (!account) throw 'Account not found';
     return account;
 }
 
 async function getRefreshToken(token) {
+    checkDatabase();
+    
     const refreshToken = await db.RefreshToken.findOne({ where: { token } });
     if (!refreshToken || !refreshToken.isActive) throw 'Invalid token';
     return refreshToken;
@@ -281,6 +322,8 @@ function basicDetails(account) {
 }
 
 async function sendVerificationEmail(account, origin) {
+    checkDatabase();
+    
     let message;
     if (origin) {
         const verifyUrl = `${origin}/account/verify-email?token=${account.verificationToken}`;
@@ -297,6 +340,8 @@ async function sendVerificationEmail(account, origin) {
 }
 
 async function sendAlreadyRegisteredEmail(email, origin) {
+    checkDatabase();
+    
     let message;
     if (origin) {
         message = `<p>If you don't know your password please visit the <a href="${origin}/account/forgot-password">forgot password</a> page.</p>`;
@@ -312,6 +357,8 @@ async function sendAlreadyRegisteredEmail(email, origin) {
 }
 
 async function sendPasswordResetEmail(account, origin) {
+    checkDatabase();
+    
     let message;
     if (origin) {
         const resetUrl = `${origin}/account/reset-password?token=${account.resetToken}`;
