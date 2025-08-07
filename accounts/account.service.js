@@ -28,7 +28,9 @@ module.exports = {
 // Helper function to check if database is available
 function checkDatabase() {
     if (!db.Account) {
-        throw { message: 'Database is not connected. Please contact support.' };
+        throw { 
+            message: 'Database connection is currently unavailable. This is likely because your MySQL hosting provider is blocking external connections from Render. Please contact your hosting provider to enable external MySQL connections from Render.com for your database at 153.92.15.31.' 
+        };
     }
 }
 

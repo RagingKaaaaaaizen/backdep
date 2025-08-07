@@ -17,23 +17,24 @@ async function initialize() {
             database: process.env.DATABASE_NAME || config.database.database
         } : config.database;
 
-        console.log('Attempting to connect to database...');
+        console.log('🔍 Attempting to connect to database...');
         console.log('Host:', dbConfig.host);
         console.log('User:', dbConfig.user);
         console.log('Database:', dbConfig.database);
+        console.log('Environment:', process.env.NODE_ENV);
 
         // create db if it doesn't already exist
         const { host, port, user, password, database } = dbConfig;
         
         try {
+            console.log('⏳ Testing MySQL connection...');
             const connection = await mysql.createConnection({ 
                 host, 
                 port, 
                 user, 
                 password,
-                connectTimeout: 10000, // 10 seconds timeout
-                acquireTimeout: 10000,
-                timeout: 10000
+                connectTimeout: 15000, // 15 seconds timeout
+                timeout: 15000
             });
             
             console.log('✅ Successfully connected to MySQL server');
@@ -54,9 +55,8 @@ async function initialize() {
                     idle: 10000
                 },
                 dialectOptions: {
-                    connectTimeout: 10000,
-                    acquireTimeout: 10000,
-                    timeout: 10000
+                    connectTimeout: 15000,
+                    timeout: 15000
                 }
             });
 
@@ -174,11 +174,20 @@ async function initialize() {
             
         } catch (dbError) {
             console.error('❌ Database connection failed:', dbError.message);
-            console.log('⚠️  App will start without database connection');
-            console.log('📝 You may need to:');
-            console.log('   1. Contact your MySQL hosting provider to enable external connections');
-            console.log('   2. Check if your MySQL server allows connections from Render\'s IP ranges');
-            console.log('   3. Verify the host address and credentials');
+            console.log('⚠️  MySQL hosting provider is blocking connections from Render');
+            console.log('📝 To fix this, contact your MySQL hosting provider and ask them to:');
+            console.log('   1. Enable external MySQL connections');
+            console.log('   2. Whitelist IP addresses (especially Render\'s IP ranges)');
+            console.log('   3. Open port 3306 for external connections');
+            console.log('   4. Check if your hosting plan allows external connections');
+            console.log('');
+            console.log('🔗 Your MySQL details:');
+            console.log('   Host: 153.92.15.31');
+            console.log('   User: u875409848_vilar');
+            console.log('   Database: u875409848_vilar');
+            console.log('');
+            console.log('📞 Contact your hosting provider with this message:');
+            console.log('   "I need to enable external MySQL connections from Render.com for my database at 153.92.15.31"');
             
             // Create empty db object so app doesn't crash
             db.sequelize = null;
