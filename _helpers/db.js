@@ -96,7 +96,64 @@ async function initialize() {
                 console.log('⚠️  Missing tables detected:', missingTables.join(', '));
                 console.log('🛠  Attempting to create missing tables automatically...');
                 try {
-                    // Create core lookup tables first
+                    // Create core tables first
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`accounts\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        title VARCHAR(255) NULL,
+                        firstName VARCHAR(255) NOT NULL,
+                        lastName VARCHAR(255) NOT NULL,
+                        email VARCHAR(255) NOT NULL,
+                        passwordHash VARCHAR(255) NOT NULL,
+                        acceptTerms TINYINT(1) DEFAULT 0,
+                        role VARCHAR(50) NOT NULL DEFAULT 'Viewer',
+                        verificationToken VARCHAR(255) NULL,
+                        verified DATETIME NULL,
+                        resetToken VARCHAR(255) NULL,
+                        resetTokenExpires DATETIME NULL,
+                        passwordReset DATETIME NULL,
+                        created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        status ENUM('Active','Inactive') NOT NULL DEFAULT 'Active',
+                        PRIMARY KEY (id),
+                        UNIQUE KEY unique_email (email)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`RefreshTokens\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        token VARCHAR(500) NULL,
+                        expires DATETIME NULL,
+                        created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        createdByIp VARCHAR(100) NULL,
+                        revoked DATETIME NULL,
+                        revokedByIp VARCHAR(100) NULL,
+                        replacedByToken VARCHAR(500) NULL,
+                        accountId INT NULL,
+                        PRIMARY KEY (id),
+                        KEY accountId (accountId)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`departments\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        name VARCHAR(255) NOT NULL,
+                        description VARCHAR(255) NULL,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY unique_department_name (name)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`employees\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        employeeId VARCHAR(100) NOT NULL,
+                        email VARCHAR(255) NOT NULL,
+                        position VARCHAR(255) NOT NULL,
+                        departmentId INT NULL,
+                        hireDate DATE NOT NULL,
+                        status ENUM('Active','Inactive') NOT NULL DEFAULT 'Active',
+                        PRIMARY KEY (id),
+                        UNIQUE KEY unique_employee_employeeId (employeeId),
+                        UNIQUE KEY unique_employee_email (email),
+                        KEY departmentId (departmentId)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
                     await sequelize.query(`CREATE TABLE IF NOT EXISTS \`Brands\` (
                         id INT NOT NULL AUTO_INCREMENT,
                         name VARCHAR(255) NOT NULL,
@@ -211,6 +268,38 @@ async function initialize() {
                         KEY locationId (locationId),
                         KEY createdBy (createdBy),
                         KEY disposeId (disposeId)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`workflows\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        employeeId INT NOT NULL,
+                        type VARCHAR(100) NOT NULL,
+                        status ENUM('Pending','Approved','Rejected') NOT NULL DEFAULT 'Pending',
+                        details TEXT NULL,
+                        startDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        endDate DATETIME NULL,
+                        actionBy VARCHAR(255) NULL,
+                        actionDate DATETIME NULL,
+                        PRIMARY KEY (id),
+                        KEY employeeId (employeeId)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`requests\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        employeeId INT NOT NULL,
+                        status VARCHAR(50) NOT NULL DEFAULT 'pending',
+                        description TEXT NULL,
+                        PRIMARY KEY (id),
+                        KEY employeeId (employeeId)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`requestItems\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        requestId INT NOT NULL,
+                        itemName VARCHAR(255) NOT NULL,
+                        quantity INT NOT NULL,
+                        PRIMARY KEY (id),
+                        KEY requestId (requestId)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
 
                     console.log('✅ Missing tables created (basic structure without FKs for compatibility).');
