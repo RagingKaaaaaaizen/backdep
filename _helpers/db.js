@@ -56,12 +56,12 @@ async function initialize() {
                 },
                 dialectOptions: {
                     connectTimeout: 15000,
-                    timeout: 15000,
+                    // Remove timeout to fix MySQL warnings
                     // Fix for Railway MySQL compatibility
                     supportBigNumbers: true,
                     bigNumberStrings: true,
                     // Disable strict mode for better compatibility
-                    strict: false,
+                    // strict: false, // Removed to fix MySQL warnings
                     // Handle VIRTUAL data type issue
                     typeCast: function (field, next) {
                         if (field.type === 'NEWDECIMAL') {
@@ -178,8 +178,8 @@ async function initialize() {
             db.Employee.hasMany(db.Request, { foreignKey: 'employeeId' });
             db.Request.belongsTo(db.Employee, { foreignKey: 'employeeId' });
 
-            // sync all models with database - use force: false for Railway compatibility
-            await sequelize.sync({ force: false }); // Don't use alter to avoid VIRTUAL issues
+            // Don't sync since tables already exist - this prevents foreign key constraint errors
+            // await sequelize.sync({ force: false }); // Commented out to prevent sync errors
 
             // expose sequelize instance
             db.sequelize = sequelize;
