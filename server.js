@@ -24,7 +24,9 @@ app.use(cookieParser());
 // Allow CORS (Render frontend + localhost during development)
 const allowedOrigins = [
   'https://frontdep.onrender.com',
-  'http://localhost:4200'
+  'https://introprogfrontt.onrender.com', // Add your actual frontend URL
+  'http://localhost:4200', // Angular default dev server
+  'http://localhost:4000'
 ];
 const corsOptions = {
   origin: function (origin, callback) {
@@ -67,6 +69,33 @@ app.use('/api/pc-components', require('./pc/pc-component.routes'));
 app.use('/api/room-locations', require('./pc/room-location.routes'));
 app.use('/api/specifications', require('./specifications'));
 app.use('/api/dispose', require('./dispose'));
+
+// Test database models endpoint
+app.get('/api/test-models', async (req, res) => {
+    try {
+        const db = require('./_helpers/db');
+        const models = {
+            RoomLocation: !!db.RoomLocation,
+            Brand: !!db.Brand,
+            Category: !!db.Category,
+            Item: !!db.Item,
+            PC: !!db.PC
+        };
+        
+        console.log('Available models:', models);
+        res.json({ 
+            message: 'Database models status',
+            models,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error testing models:', error);
+        res.status(500).json({ 
+            error: 'Database models test failed',
+            message: error.message 
+        });
+    }
+});
 
 // Database status and data endpoint - demonstrates environment usage and direct database calling
 app.get('/api/database-status', async (req, res) => {

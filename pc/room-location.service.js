@@ -11,15 +11,24 @@ module.exports = {
 // Get all room locations
 async function getAll() {
     try {
+        // Check if RoomLocation model is available
+        if (!db.RoomLocation) {
+            console.error('RoomLocation model is not initialized');
+            throw new Error('RoomLocation model is not available');
+        }
+
         // Check if PC model is available for associations
         const includeOptions = [];
         if (db.PC) {
             includeOptions.push({ model: db.PC, as: 'pcs', attributes: ['id', 'name'] });
         }
 
-        return await db.RoomLocation.findAll({
+        console.log('Fetching room locations...');
+        const rooms = await db.RoomLocation.findAll({
             include: includeOptions
         });
+        console.log(`Found ${rooms.length} room locations`);
+        return rooms;
     } catch (error) {
         console.error('Error in getAll room locations:', error);
         throw error;

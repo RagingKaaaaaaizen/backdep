@@ -330,6 +330,7 @@ async function initialize() {
             db.Brand = require('../brand/brand.model')(sequelize, DataTypes);
             db.Category = require('../category/category.model')(sequelize, DataTypes);
             db.Item = require('../items/item.model')(sequelize, DataTypes);
+            db.RoomLocation = require('../pc/room-location.model')(sequelize, DataTypes);
             
             // Only initialize models for existing tables
             if (existingTables.includes('stocks')) {
@@ -337,10 +338,6 @@ async function initialize() {
             }
             
             db.StorageLocation = require('../storage-location/storage-location.model')(sequelize, DataTypes);
-            
-            if (existingTables.includes('roomLocations')) {
-                db.RoomLocation = require('../pc/room-location.model')(sequelize, DataTypes);
-            }
             
             if (existingTables.includes('PCs')) {
                 db.PC = require('../pc/pc.model')(sequelize, DataTypes);
