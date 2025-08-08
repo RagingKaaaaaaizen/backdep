@@ -21,15 +21,16 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// Allow CORS (Render frontend + localhost)
+// Allow CORS (Render frontend + localhost during development)
 const allowedOrigins = [
   'https://frontdep.onrender.com',
   'http://localhost:4000'
 ];
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow non-browser clients
-    const isAllowed = allowedOrigins.includes(origin);
+    if (!origin) return callback(null, true); // allow non-browser clients and same-origin
+    const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+    const isAllowed = allowedOrigins.includes(origin) || isLocalhost;
     callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
   },
   credentials: true,
