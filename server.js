@@ -22,7 +22,12 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 
 // Allow CORS
-app.use(cors({ origin: (origin, callback) => callback(null, true), credentials: true }));
+app.use(cors({
+  origin: ['https://frontdep.onrender.com', 'http://localhost:4000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Allow-Origin']
+}));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
