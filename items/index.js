@@ -27,7 +27,10 @@ function updateSchema(req, res, next) {
     validateRequest(req, next, schema);
 }
 
-// Routes
+// Public route for initial data loading
+router.get('/public', itemController.getAll);
+
+// Protected routes
 router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), itemController.getAll);
 router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), itemController.getById);
 router.post('/', authorize([Role.SuperAdmin, Role.Admin]), createSchema, itemController.create);

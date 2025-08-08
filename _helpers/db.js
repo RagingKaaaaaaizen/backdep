@@ -534,6 +534,21 @@ async function initialize() {
                         `);
                     }
                     console.log('✅ Sample data inserted successfully');
+                    
+                    // Add sample room locations
+                    const [roomCount] = await sequelize.query('SELECT COUNT(*) as count FROM roomLocations');
+                    if (roomCount[0].count === 0) {
+                        console.log('➕ Inserting sample room locations...');
+                        await sequelize.query(`
+                            INSERT INTO roomLocations (name, description, building, floor, roomNumber, capacity, status) VALUES 
+                            ('Computer Lab 1', 'Main computer laboratory', 'Building A', '1st Floor', 'A101', 30, 'Active'),
+                            ('Computer Lab 2', 'Secondary computer laboratory', 'Building A', '1st Floor', 'A102', 25, 'Active'),
+                            ('Server Room', 'Data center and server storage', 'Building B', 'Basement', 'B001', 10, 'Active'),
+                            ('Network Operations Center', 'Network monitoring and control', 'Building A', '2nd Floor', 'A201', 15, 'Active'),
+                            ('Training Room', 'Employee training and meetings', 'Building C', '1st Floor', 'C101', 20, 'Active')
+                        `);
+                    }
+                    console.log('✅ Room location sample data inserted successfully');
                 } catch (error) {
                     console.log('⚠️  Error inserting sample data:', error.message);
                 }

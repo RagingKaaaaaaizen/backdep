@@ -34,7 +34,10 @@ function updateRoomLocationSchema(req, res, next) {
     validateRequest(req, next, schema);
 }
 
-// Routes
+// Public route for initial data loading
+router.get('/public', controller.getAll);
+
+// Protected routes
 router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), controller.getAll);
 router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), controller.getById);
 router.post('/', authorize([Role.SuperAdmin, Role.Admin]), createRoomLocationSchema, controller.create);

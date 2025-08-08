@@ -10,11 +10,20 @@ module.exports = {
 
 // Get all room locations
 async function getAll() {
-    return await db.RoomLocation.findAll({
-        include: [
-            { model: db.PC, as: 'pcs', attributes: ['id', 'name'] }
-        ]
-    });
+    try {
+        // Check if PC model is available for associations
+        const includeOptions = [];
+        if (db.PC) {
+            includeOptions.push({ model: db.PC, as: 'pcs', attributes: ['id', 'name'] });
+        }
+
+        return await db.RoomLocation.findAll({
+            include: includeOptions
+        });
+    } catch (error) {
+        console.error('Error in getAll room locations:', error);
+        throw error;
+    }
 }
 
 // Get room location by ID
@@ -56,12 +65,21 @@ async function _delete(id) {
 
 // Helper function to get room location
 async function getRoomLocation(id) {
-    const room = await db.RoomLocation.findByPk(id, {
-        include: [
-            { model: db.PC, as: 'pcs', attributes: ['id', 'name'] }
-        ]
-    });
-    
-    if (!room) throw 'Room Location not found';
-    return room;
+    try {
+        // Check if PC model is available for associations
+        const includeOptions = [];
+        if (db.PC) {
+            includeOptions.push({ model: db.PC, as: 'pcs', attributes: ['id', 'name'] });
+        }
+
+        const room = await db.RoomLocation.findByPk(id, {
+            include: includeOptions
+        });
+        
+        if (!room) throw 'Room Location not found';
+        return room;
+    } catch (error) {
+        console.error('Error in getRoomLocation:', error);
+        throw error;
+    }
 } 
