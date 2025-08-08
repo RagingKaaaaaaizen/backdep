@@ -30,7 +30,10 @@ function updateStockSchema(req, res, next) {
     validateRequest(req, next, schema);
 }
 
-// Routes
+// Public route for initial data loading
+router.get('/public', controller.getLogs);
+
+// Protected routes
 router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), controller.getLogs);                                   // GET all stock logs
 router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), controller.getById);                                // GET single stock log
 router.get('/available/:itemId', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), controller.getAvailableStock);        // GET available stock for item

@@ -332,11 +332,7 @@ async function initialize() {
             db.Item = require('../items/item.model')(sequelize, DataTypes);
             db.RoomLocation = require('../pc/room-location.model')(sequelize, DataTypes);
             db.PC = require('../pc/pc.model')(sequelize, DataTypes);
-            
-            // Only initialize models for existing tables
-            if (existingTables.includes('stocks')) {
-                db.Stock = require('../stock/stock.model')(sequelize, DataTypes);
-            }
+            db.Stock = require('../stock/stock.model')(sequelize, DataTypes);
             
             db.StorageLocation = require('../storage-location/storage-location.model')(sequelize, DataTypes);
             
@@ -561,6 +557,31 @@ async function initialize() {
                         }
                     }
                     console.log('✅ PC sample data inserted successfully');
+                    
+                    // Add sample stock data
+                    const [stockCount] = await sequelize.query('SELECT COUNT(*) as count FROM stocks');
+                    if (stockCount[0].count === 0) {
+                        console.log('➕ Inserting sample stock data...');
+                        // First get some items and locations
+                        const [items] = await sequelize.query('SELECT id FROM Items LIMIT 3');
+                        const [locations] = await sequelize.query('SELECT id FROM StorageLocations LIMIT 2');
+                        
+                        if (items.length > 0 && locations.length > 0) {
+                            for (let i = 0; i < Math.min(items.length, 3); i++) {
+                                const itemId = items[i].id;
+                                const locationId = locations[i % locations.length].id;
+                                const quantity = Math.floor(Math.random() * 50) + 10;
+                                const price = Math.floor(Math.random() * 1000) + 100;
+                                const totalPrice = quantity * price;
+                                
+                                await sequelize.query(`
+                                    INSERT INTO stocks (itemId, locationId, quantity, price, totalPrice, remarks, createdBy) VALUES 
+                                    (${itemId}, ${locationId}, ${quantity}, ${price}, ${totalPrice}, 'Sample stock entry', 1)
+                                `);
+                            }
+                        }
+                    }
+                    console.log('✅ Stock sample data inserted successfully');
                 } catch (error) {
                     console.log('⚠️  Error inserting sample data:', error.message);
                 }
