@@ -79,7 +79,7 @@ async function initialize() {
             await sequelize.authenticate();
             console.log('✅ Database connection has been established successfully.');
 
-            // Check if required tables exist
+            // Check if required tables exist and auto-create missing ones
             console.log('🔍 Checking for required tables...');
             const [tables] = await sequelize.query('SHOW TABLES');
             const existingTables = tables.map(row => Object.values(row)[0]);
@@ -94,7 +94,129 @@ async function initialize() {
             const missingTables = requiredTables.filter(table => !existingTables.includes(table));
             if (missingTables.length > 0) {
                 console.log('⚠️  Missing tables detected:', missingTables.join(', '));
-                console.log('📝 Some features may not work until tables are created');
+                console.log('🛠  Attempting to create missing tables automatically...');
+                try {
+                    // Create core lookup tables first
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`Brands\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        name VARCHAR(255) NOT NULL,
+                        description VARCHAR(255) NULL,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY unique_brand_name (name)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`Categories\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        name VARCHAR(255) NOT NULL,
+                        description VARCHAR(255) NULL,
+                        PRIMARY KEY (id),
+                        UNIQUE KEY unique_category_name (name)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`Items\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        categoryId INT NOT NULL,
+                        brandId INT NOT NULL,
+                        brandName VARCHAR(255) NULL,
+                        name VARCHAR(255) NOT NULL,
+                        description VARCHAR(255) NULL,
+                        PRIMARY KEY (id),
+                        KEY categoryId (categoryId),
+                        KEY brandId (brandId),
+                        CONSTRAINT items_category_fk FOREIGN KEY (categoryId) REFERENCES \`Categories\` (id) ON DELETE CASCADE,
+                        CONSTRAINT items_brand_fk FOREIGN KEY (brandId) REFERENCES \`Brands\` (id) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`StorageLocations\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        name VARCHAR(255) NOT NULL,
+                        description TEXT NULL,
+                        PRIMARY KEY (id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`roomLocations\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        name VARCHAR(255) NOT NULL,
+                        description TEXT NULL,
+                        createdBy INT NULL,
+                        createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`PCs\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        name VARCHAR(255) NOT NULL,
+                        description TEXT NULL,
+                        roomLocationId INT NOT NULL,
+                        createdBy INT NULL,
+                        createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        KEY roomLocationId (roomLocationId),
+                        CONSTRAINT pcs_room_fk FOREIGN KEY (roomLocationId) REFERENCES \`roomLocations\` (id) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`PCComponents\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        pcId INT NOT NULL,
+                        itemId INT NOT NULL,
+                        stockId INT NOT NULL,
+                        quantity INT NOT NULL DEFAULT 1,
+                        createdBy INT NULL,
+                        createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        KEY pcId (pcId),
+                        KEY itemId (itemId),
+                        KEY stockId (stockId)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`specificationFields\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        categoryId INT NOT NULL,
+                        name VARCHAR(255) NOT NULL,
+                        type ENUM('text','number','boolean','date') NOT NULL DEFAULT 'text',
+                        required TINYINT(1) NOT NULL DEFAULT 0,
+                        createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id),
+                        KEY categoryId (categoryId)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`disposes\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        itemId INT NOT NULL,
+                        locationId INT NOT NULL,
+                        quantity INT NOT NULL,
+                        reason TEXT NULL,
+                        disposalDate DATE NOT NULL,
+                        createdBy INT NULL,
+                        createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        PRIMARY KEY (id)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    await sequelize.query(`CREATE TABLE IF NOT EXISTS \`stocks\` (
+                        id INT NOT NULL AUTO_INCREMENT,
+                        itemId INT NOT NULL,
+                        locationId INT NOT NULL,
+                        quantity INT NOT NULL DEFAULT 0,
+                        createdBy INT NULL,
+                        createdAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        disposeId INT NULL,
+                        PRIMARY KEY (id),
+                        KEY itemId (itemId),
+                        KEY locationId (locationId),
+                        KEY createdBy (createdBy),
+                        KEY disposeId (disposeId)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
+
+                    console.log('✅ Missing tables created (basic structure without FKs for compatibility).');
+                } catch (e) {
+                    console.log('⚠️  Auto-create tables step encountered issues:', e.message);
+                }
             } else {
                 console.log('✅ All required tables exist');
             }
