@@ -21,13 +21,23 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// Allow CORS
-app.use(cors({
-  origin: ['https://frontdep.onrender.com', 'http://localhost:4000'],
+// Allow CORS (Render frontend + localhost)
+const allowedOrigins = [
+  'https://frontdep.onrender.com',
+  'http://localhost:4000'
+];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow non-browser clients
+    const isAllowed = allowedOrigins.includes(origin);
+    callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Allow-Origin']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // handle preflight
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
