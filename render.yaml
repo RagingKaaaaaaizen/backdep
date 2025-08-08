@@ -18,3 +18,5 @@ services:
         value: 6xw;kmmXC$
       - key: DATABASE_NAME
         value: u875409848_vilar
+      - key: JWT_SECRET
+        value: 24d72fbdef0fd2fa98c0ec371ec919197ff68e6b9ff2e47dc2f0dbcc58314bc9dcee89c3fe3f8c471f5b7337c14ad526842e39e3fe4d5c7520e399e2740fc504
