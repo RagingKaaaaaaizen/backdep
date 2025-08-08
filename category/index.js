@@ -4,7 +4,7 @@ const authorize = require('../_middleware/authorize');
 const Role = require('../_helpers/role');
 const validateRequest = require('../_middleware/validate-request');
 const Joi = require('joi');
-const controller = require('./category.controller');
+const categoryController = require('./category.controller');
 
 // Validation schemas
 function createSchema(req, res, next) {
@@ -23,11 +23,14 @@ function updateSchema(req, res, next) {
     validateRequest(req, next, schema);
 }
 
-// Routes
-router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), controller.getAll);
-router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), controller.getById);
-router.post('/', authorize([Role.SuperAdmin, Role.Admin]), createSchema, controller.create);
-router.put('/:id', authorize([Role.SuperAdmin, Role.Admin]), updateSchema, controller.update);
-router.delete('/:id', authorize([Role.SuperAdmin, Role.Admin]), controller._delete);
+// Public route for initial data loading
+router.get('/public', categoryController.getAll);
+
+// Protected routes
+router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), categoryController.getAll);
+router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), categoryController.getById);
+router.post('/', authorize([Role.SuperAdmin, Role.Admin]), createSchema, categoryController.create);
+router.put('/:id', authorize([Role.SuperAdmin, Role.Admin]), updateSchema, categoryController.update);
+router.delete('/:id', authorize([Role.SuperAdmin, Role.Admin]), categoryController._delete);
 
 module.exports = router;

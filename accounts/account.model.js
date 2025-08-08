@@ -48,6 +48,11 @@ function model(sequelize) {
             isVerified() {
                 return !!(this.verified || this.passwordReset);
             }
+        },
+        instanceMethods: {
+            ownsToken(token) {
+                return !!this.refreshTokens.find(x => x.token === token);
+            }
         }
     };
 
