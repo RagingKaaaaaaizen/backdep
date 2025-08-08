@@ -6,7 +6,10 @@ const validateRequest = require('../_middleware/validate-request');
 const Joi = require('joi');
 const pcService = require('./pc.service');
 
-// Routes
+// Public route for initial data loading
+router.get('/public', getAll);
+
+// Protected routes
 router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getAll);
 router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getById);
 router.post('/', authorize([Role.SuperAdmin, Role.Admin]), createSchema, create);

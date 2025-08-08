@@ -74,23 +74,39 @@ async function authenticate({ email, password, ipAddress }) {
 async function refreshToken({ token, ipAddress }) {
     checkDatabase();
     
-    const refreshToken = await getRefreshToken(token);
-    const account = await refreshToken.getAccount();
+    try {
+        console.log('Attempting to refresh token...');
+        
+        if (!token) {
+            console.log('No token provided for refresh');
+            throw { message: 'Token is required' };
+        }
+        
+        const refreshToken = await getRefreshToken(token);
+        console.log('Refresh token found:', !!refreshToken);
+        
+        const account = await refreshToken.getAccount();
+        console.log('Account found for token:', account.email);
 
-    const newRefreshToken = generateRefreshToken(account, ipAddress);
-    refreshToken.revoked = Date.now();
-    refreshToken.revokedByIp = ipAddress;
-    refreshToken.replacedByToken = newRefreshToken.token;
-    await refreshToken.save();
-    await newRefreshToken.save();
+        const newRefreshToken = generateRefreshToken(account, ipAddress);
+        refreshToken.revoked = Date.now();
+        refreshToken.revokedByIp = ipAddress;
+        refreshToken.replacedByToken = newRefreshToken.token;
+        await refreshToken.save();
+        await newRefreshToken.save();
 
-    const jwtToken = generateJwtToken(account);
+        const jwtToken = generateJwtToken(account);
 
-    return {
-        ...basicDetails(account),
-        jwtToken,
-        refreshToken: newRefreshToken.token
-    };
+        console.log('Token refresh successful for:', account.email);
+        return {
+            ...basicDetails(account),
+            jwtToken,
+            refreshToken: newRefreshToken.token
+        };
+    } catch (error) {
+        console.error('Token refresh failed:', error.message);
+        throw { message: 'Invalid token' };
+    }
 }
 
 async function revokeToken({ token, ipAddress }) {
@@ -291,8 +307,21 @@ async function getAccount(id) {
 async function getRefreshToken(token) {
     checkDatabase();
     
+    console.log('Looking for refresh token...');
     const refreshToken = await db.RefreshToken.findOne({ where: { token } });
-    if (!refreshToken || !refreshToken.isActive) throw 'Invalid token';
+    
+    if (!refreshToken) {
+        console.log('Refresh token not found in database');
+        throw { message: 'Token not found' };
+    }
+    
+    console.log('Refresh token found, checking if active...');
+    if (!refreshToken.isActive) {
+        console.log('Refresh token is not active (expired or revoked)');
+        throw { message: 'Token is expired or revoked' };
+    }
+    
+    console.log('Refresh token is valid');
     return refreshToken;
 }
 

@@ -11,7 +11,7 @@ function model(sequelize) {
             type: DataTypes.INTEGER, 
             allowNull: false,
             references: {
-                model: 'RoomLocations',
+                model: 'roomLocations',
                 key: 'id'
             }
         },

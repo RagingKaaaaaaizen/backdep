@@ -97,6 +97,60 @@ app.get('/api/test-models', async (req, res) => {
     }
 });
 
+// Debug endpoint to check refresh tokens
+app.get('/api/debug/tokens', async (req, res) => {
+    try {
+        const db = require('./_helpers/db');
+        const tokens = await db.RefreshToken.findAll({
+            attributes: ['id', 'token', 'expires', 'revoked', 'createdByIp'],
+            limit: 10
+        });
+        
+        res.json({ 
+            message: 'Refresh tokens in database',
+            count: tokens.length,
+            tokens: tokens.map(t => ({
+                id: t.id,
+                token: t.token ? t.token.substring(0, 10) + '...' : null,
+                expires: t.expires,
+                revoked: t.revoked,
+                isActive: t.isActive
+            }))
+        });
+    } catch (error) {
+        console.error('Error checking tokens:', error);
+        res.status(500).json({ 
+            error: 'Failed to check tokens',
+            message: error.message 
+        });
+    }
+});
+
+// Test room-locations endpoint
+app.get('/api/test/room-locations', async (req, res) => {
+    try {
+        const roomLocationService = require('./pc/room-location.service');
+        const rooms = await roomLocationService.getAll();
+        
+        res.json({ 
+            message: 'Room locations test successful',
+            count: rooms.length,
+            rooms: rooms.map(r => ({
+                id: r.id,
+                name: r.name,
+                description: r.description,
+                pcs: r.pcs ? r.pcs.length : 0
+            }))
+        });
+    } catch (error) {
+        console.error('Error testing room locations:', error);
+        res.status(500).json({ 
+            error: 'Room locations test failed',
+            message: error.message 
+        });
+    }
+});
+
 // Database status and data endpoint - demonstrates environment usage and direct database calling
 app.get('/api/database-status', async (req, res) => {
     try {

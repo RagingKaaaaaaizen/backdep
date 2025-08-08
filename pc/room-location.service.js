@@ -19,8 +19,11 @@ async function getAll() {
 
         // Check if PC model is available for associations
         const includeOptions = [];
-        if (db.PC) {
+        if (db.PC && typeof db.PC === 'function') {
+            console.log('PC model is available, including in query');
             includeOptions.push({ model: db.PC, as: 'pcs', attributes: ['id', 'name'] });
+        } else {
+            console.log('PC model is not available, skipping association');
         }
 
         console.log('Fetching room locations...');
@@ -77,8 +80,11 @@ async function getRoomLocation(id) {
     try {
         // Check if PC model is available for associations
         const includeOptions = [];
-        if (db.PC) {
+        if (db.PC && typeof db.PC === 'function') {
+            console.log('PC model is available, including in query');
             includeOptions.push({ model: db.PC, as: 'pcs', attributes: ['id', 'name'] });
+        } else {
+            console.log('PC model is not available, skipping association');
         }
 
         const room = await db.RoomLocation.findByPk(id, {

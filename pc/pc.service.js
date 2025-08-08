@@ -39,7 +39,7 @@ async function create(params, userId) {
     }
 
     // Validate room location exists
-    const roomLocation = await db.StorageLocation.findByPk(params.roomLocationId);
+    const roomLocation = await db.RoomLocation.findByPk(params.roomLocationId);
     if (!roomLocation) throw 'Room location not found';
 
     // Check for duplicate serial number if provided
@@ -66,7 +66,7 @@ async function update(id, params) {
 
     // Validate room location if being updated
     if (params.roomLocationId) {
-        const roomLocation = await db.StorageLocation.findByPk(params.roomLocationId);
+        const roomLocation = await db.RoomLocation.findByPk(params.roomLocationId);
         if (!roomLocation) throw 'Room location not found';
     }
 

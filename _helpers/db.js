@@ -331,6 +331,7 @@ async function initialize() {
             db.Category = require('../category/category.model')(sequelize, DataTypes);
             db.Item = require('../items/item.model')(sequelize, DataTypes);
             db.RoomLocation = require('../pc/room-location.model')(sequelize, DataTypes);
+            db.PC = require('../pc/pc.model')(sequelize, DataTypes);
             
             // Only initialize models for existing tables
             if (existingTables.includes('stocks')) {
@@ -338,10 +339,6 @@ async function initialize() {
             }
             
             db.StorageLocation = require('../storage-location/storage-location.model')(sequelize, DataTypes);
-            
-            if (existingTables.includes('PCs')) {
-                db.PC = require('../pc/pc.model')(sequelize, DataTypes);
-            }
             
             if (existingTables.includes('PCComponents')) {
                 db.PCComponent = require('../pc/pc-component.model')(sequelize, DataTypes);
@@ -546,6 +543,24 @@ async function initialize() {
                         `);
                     }
                     console.log('✅ Room location sample data inserted successfully');
+                    
+                    // Add sample PCs
+                    const [pcCount] = await sequelize.query('SELECT COUNT(*) as count FROM PCs');
+                    if (pcCount[0].count === 0) {
+                        console.log('➕ Inserting sample PCs...');
+                        // First get a room location ID
+                        const [roomLocations] = await sequelize.query('SELECT id FROM roomLocations LIMIT 1');
+                        if (roomLocations.length > 0) {
+                            const roomLocationId = roomLocations[0].id;
+                            await sequelize.query(`
+                                INSERT INTO PCs (name, description, roomLocationId, status) VALUES 
+                                ('PC-001', 'Main workstation in Computer Lab 1', ${roomLocationId}, 'Active'),
+                                ('PC-002', 'Secondary workstation in Computer Lab 1', ${roomLocationId}, 'Active'),
+                                ('PC-003', 'Workstation in Computer Lab 2', ${roomLocationId}, 'Active')
+                            `);
+                        }
+                    }
+                    console.log('✅ PC sample data inserted successfully');
                 } catch (error) {
                     console.log('⚠️  Error inserting sample data:', error.message);
                 }
