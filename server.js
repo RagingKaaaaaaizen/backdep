@@ -24,6 +24,8 @@ app.use(cookieParser());
 // Allow CORS (Render frontend + localhost during development)
 const allowedOrigins = [
   'https://frontdep.onrender.com',
+  'https://introprogfrontt.onrender.com', // Add your actual frontend URL
+  'http://localhost:4200', // Angular default dev server
   'http://localhost:4000'
 ];
 const corsOptions = {
@@ -31,6 +33,7 @@ const corsOptions = {
     if (!origin) return callback(null, true); // allow non-browser clients and same-origin
     const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
     const isAllowed = allowedOrigins.includes(origin) || isLocalhost;
+    console.log('CORS check - Origin:', origin, 'Allowed:', isAllowed);
     callback(isAllowed ? null : new Error('Not allowed by CORS'), isAllowed);
   },
   credentials: true,
@@ -66,6 +69,118 @@ app.use('/api/pc-components', require('./pc/pc-component.routes'));
 app.use('/api/room-locations', require('./pc/room-location.routes'));
 app.use('/api/specifications', require('./specifications'));
 app.use('/api/dispose', require('./dispose'));
+
+// Database status and data endpoint - demonstrates environment usage and direct database calling
+app.get('/api/database-status', async (req, res) => {
+    try {
+        // Use the same environment pattern as _helpers/db.js
+        const environment = {
+            apiUrl: process.env.API_URL || 'https://inventory-backend-api-production-030e.up.railway.app/api',
+            database: process.env.NODE_ENV === 'production' ? {
+                host: process.env.DATABASE_HOST || config.database.host,
+                port: process.env.DATABASE_PORT || config.database.port,
+                user: process.env.DATABASE_USER || config.database.user,
+                password: process.env.DATABASE_PASSWORD || config.database.password,
+                database: process.env.DATABASE_NAME || config.database.database
+            } : config.database,
+            server: {
+                port: process.env.PORT || 3000,
+                nodeEnv: process.env.NODE_ENV || 'development'
+            }
+        };
+
+        // Check database connection status
+        if (!db.sequelize) {
+            return res.status(503).json({
+                status: 'error',
+                message: 'Database connection is not available',
+                environment: {
+                    apiUrl: environment.apiUrl,
+                    database: {
+                        host: environment.database.host,
+                        port: environment.database.port,
+                        database: environment.database.database,
+                        user: environment.database.user,
+                        connected: false
+                    },
+                    server: environment.server
+                }
+            });
+        }
+
+        // Get database information using direct database calling
+        const [tables] = await db.sequelize.query('SHOW TABLES');
+        const existingTables = tables.map(row => Object.values(row)[0]);
+
+        // Get counts from various tables using direct database calling
+        const tableCounts = {};
+        for (const table of existingTables) {
+            try {
+                const [result] = await db.sequelize.query(`SELECT COUNT(*) as count FROM \`${table}\``);
+                tableCounts[table] = result[0].count;
+            } catch (error) {
+                tableCounts[table] = 'Error: ' + error.message;
+            }
+        }
+
+        // Get sample data from Brands table using direct database calling
+        let sampleBrands = [];
+        try {
+            const [brands] = await db.sequelize.query('SELECT * FROM Brands LIMIT 5');
+            sampleBrands = brands;
+        } catch (error) {
+            sampleBrands = [{ error: 'Could not fetch brands: ' + error.message }];
+        }
+
+        // Get database connection info
+        const connectionConfig = db.sequelize.config;
+
+        res.json({
+            status: 'success',
+            message: 'Database connection and data retrieval successful',
+            timestamp: new Date().toISOString(),
+            environment: {
+                apiUrl: environment.apiUrl,
+                database: {
+                    host: environment.database.host,
+                    port: environment.database.port,
+                    database: environment.database.database,
+                    user: environment.database.user,
+                    connected: true,
+                    dialect: connectionConfig.dialect,
+                    pool: connectionConfig.pool
+                },
+                server: environment.server
+            },
+            database: {
+                tables: existingTables,
+                tableCounts: tableCounts,
+                sampleData: {
+                    brands: sampleBrands
+                },
+                models: {
+                    Account: !!db.Account,
+                    Brand: !!db.Brand,
+                    Category: !!db.Category,
+                    Item: !!db.Item,
+                    Stock: !!db.Stock,
+                    StorageLocation: !!db.StorageLocation,
+                    PC: !!db.PC,
+                    PCComponent: !!db.PCComponent
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Database status endpoint error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Failed to get database status',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
 
 // Swagger docs
 app.use('/api-docs', require('./_helpers/swagger'));
