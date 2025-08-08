@@ -158,6 +158,8 @@ async function initialize() {
                         id INT NOT NULL AUTO_INCREMENT,
                         name VARCHAR(255) NOT NULL,
                         description VARCHAR(255) NULL,
+                        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         PRIMARY KEY (id),
                         UNIQUE KEY unique_brand_name (name)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
@@ -166,6 +168,8 @@ async function initialize() {
                         id INT NOT NULL AUTO_INCREMENT,
                         name VARCHAR(255) NOT NULL,
                         description VARCHAR(255) NULL,
+                        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         PRIMARY KEY (id),
                         UNIQUE KEY unique_category_name (name)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
@@ -177,6 +181,8 @@ async function initialize() {
                         brandName VARCHAR(255) NULL,
                         name VARCHAR(255) NOT NULL,
                         description VARCHAR(255) NULL,
+                        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         PRIMARY KEY (id),
                         KEY categoryId (categoryId),
                         KEY brandId (brandId),
@@ -188,6 +194,8 @@ async function initialize() {
                         id INT NOT NULL AUTO_INCREMENT,
                         name VARCHAR(255) NOT NULL,
                         description TEXT NULL,
+                        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         PRIMARY KEY (id)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`);
 
@@ -471,6 +479,67 @@ async function initialize() {
             db.Sequelize = Sequelize;
             
             console.log('✅ Database initialization completed successfully');
+            
+            // Update existing tables to add missing timestamp columns
+            console.log('🔧 Checking for missing timestamp columns...');
+            try {
+                // Check and add createdAt/updatedAt to existing tables
+                const tablesToUpdate = ['Brands', 'Categories', 'Items', 'StorageLocations'];
+                
+                for (const tableName of tablesToUpdate) {
+                    const [columns] = await sequelize.query(`SHOW COLUMNS FROM \`${tableName}\``);
+                    const columnNames = columns.map(col => col.Field);
+                    
+                    if (!columnNames.includes('createdAt')) {
+                        console.log(`➕ Adding createdAt column to ${tableName}`);
+                        await sequelize.query(`ALTER TABLE \`${tableName}\` ADD COLUMN createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+                    }
+                    
+                    if (!columnNames.includes('updatedAt')) {
+                        console.log(`➕ Adding updatedAt column to ${tableName}`);
+                        await sequelize.query(`ALTER TABLE \`${tableName}\` ADD COLUMN updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+                    }
+                }
+                console.log('✅ Timestamp columns updated successfully');
+                
+                // Insert sample data if tables are empty
+                console.log('📝 Checking for sample data...');
+                try {
+                    const [brandCount] = await sequelize.query('SELECT COUNT(*) as count FROM Brands');
+                    if (brandCount[0].count === 0) {
+                        console.log('➕ Inserting sample brands...');
+                        await sequelize.query(`
+                            INSERT INTO Brands (name, description) VALUES 
+                            ('Apple', 'Premium technology products'),
+                            ('Samsung', 'Electronics and mobile devices'),
+                            ('Dell', 'Computer hardware and accessories'),
+                            ('HP', 'Computers and printers'),
+                            ('Lenovo', 'Laptops and desktop computers')
+                        `);
+                    }
+                    
+                    const [categoryCount] = await sequelize.query('SELECT COUNT(*) as count FROM Categories');
+                    if (categoryCount[0].count === 0) {
+                        console.log('➕ Inserting sample categories...');
+                        await sequelize.query(`
+                            INSERT INTO Categories (name, description) VALUES 
+                            ('Laptops', 'Portable computers'),
+                            ('Desktop Computers', 'Stationary computers'),
+                            ('Monitors', 'Display screens'),
+                            ('Keyboards', 'Input devices'),
+                            ('Mice', 'Pointing devices'),
+                            ('Printers', 'Output devices'),
+                            ('Network Equipment', 'Routers, switches, cables'),
+                            ('Storage Devices', 'Hard drives, SSDs, USB drives')
+                        `);
+                    }
+                    console.log('✅ Sample data inserted successfully');
+                } catch (error) {
+                    console.log('⚠️  Error inserting sample data:', error.message);
+                }
+            } catch (error) {
+                console.log('⚠️  Error updating timestamp columns:', error.message);
+            }
             
         } catch (dbError) {
             console.error('❌ Database connection failed:', dbError.message);

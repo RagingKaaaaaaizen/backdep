@@ -23,9 +23,8 @@ app.use(cookieParser());
 
 // Allow CORS (Render frontend + localhost during development)
 const allowedOrigins = [
-  'https://frontdep.onrender.com',// Add your actual frontend URL
-  'http://localhost:4200' // Angular default dev server
-  
+  'https://frontdep.onrender.com',
+  'http://localhost:4200'
 ];
 const corsOptions = {
   origin: function (origin, callback) {
