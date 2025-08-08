@@ -13,13 +13,24 @@ module.exports = {
 
 // Get all PC components
 async function getAll() {
-    return await db.PCComponent.findAll({
-        include: [
-            { model: db.PC, as: 'pc', attributes: ['id', 'name'] },
-            { model: db.Item, as: 'item', attributes: ['id', 'name'] },
-            { model: db.Stock, as: 'stock', attributes: ['id', 'quantity', 'price'] }
-        ]
-    });
+    // Check if PCComponent model exists
+    if (!db.PCComponent) {
+        console.log('⚠️  PCComponent model not available - table may not exist');
+        return [];
+    }
+
+    try {
+        return await db.PCComponent.findAll({
+            include: [
+                { model: db.PC, as: 'pc', attributes: ['id', 'name'] },
+                { model: db.Item, as: 'item', attributes: ['id', 'name'] },
+                { model: db.Stock, as: 'stock', attributes: ['id', 'quantity', 'price'] }
+            ]
+        });
+    } catch (error) {
+        console.log('⚠️  Error loading PC Components:', error.message);
+        return [];
+    }
 }
 
 // Get PC component by ID
@@ -29,30 +40,54 @@ async function getById(id) {
 
 // Get PC components by PC ID
 async function getByPCId(pcId) {
-    return await db.PCComponent.findAll({
-        where: { pcId },
-        include: [
-            { model: db.PC, as: 'pc', attributes: ['id', 'name'] },
-            { model: db.Item, as: 'item', attributes: ['id', 'name'] },
-            { model: db.Stock, as: 'stock', attributes: ['id', 'quantity', 'price'] }
-        ]
-    });
+    if (!db.PCComponent) {
+        console.log('⚠️  PCComponent model not available - table may not exist');
+        return [];
+    }
+
+    try {
+        return await db.PCComponent.findAll({
+            where: { pcId },
+            include: [
+                { model: db.PC, as: 'pc', attributes: ['id', 'name'] },
+                { model: db.Item, as: 'item', attributes: ['id', 'name'] },
+                { model: db.Stock, as: 'stock', attributes: ['id', 'quantity', 'price'] }
+            ]
+        });
+    } catch (error) {
+        console.log('⚠️  Error loading PC Components by PC ID:', error.message);
+        return [];
+    }
 }
 
 // Get PC components by Item ID
 async function getByItemId(itemId) {
-    return await db.PCComponent.findAll({
-        where: { itemId },
-        include: [
-            { model: db.PC, as: 'pc', attributes: ['id', 'name'] },
-            { model: db.Item, as: 'item', attributes: ['id', 'name'] },
-            { model: db.Stock, as: 'stock', attributes: ['id', 'quantity', 'price'] }
-        ]
-    });
+    if (!db.PCComponent) {
+        console.log('⚠️  PCComponent model not available - table may not exist');
+        return [];
+    }
+
+    try {
+        return await db.PCComponent.findAll({
+            where: { itemId },
+            include: [
+                { model: db.PC, as: 'pc', attributes: ['id', 'name'] },
+                { model: db.Item, as: 'item', attributes: ['id', 'name'] },
+                { model: db.Stock, as: 'stock', attributes: ['id', 'quantity', 'price'] }
+            ]
+        });
+    } catch (error) {
+        console.log('⚠️  Error loading PC Components by Item ID:', error.message);
+        return [];
+    }
 }
 
 // Create new PC component
 async function create(params, userId) {
+    if (!db.PCComponent) {
+        throw 'PC Component functionality not available - table does not exist';
+    }
+
     if (!params.pcId) throw 'PC ID is required';
     if (!params.itemId) throw 'Item ID is required';
     if (!params.quantity) throw 'Quantity is required';
@@ -95,6 +130,10 @@ async function create(params, userId) {
 
 // Update PC component
 async function update(id, params) {
+    if (!db.PCComponent) {
+        throw 'PC Component functionality not available - table does not exist';
+    }
+
     const component = await getPCComponent(id);
 
     // Update fields
@@ -106,6 +145,10 @@ async function update(id, params) {
 
 // Delete PC component
 async function _delete(id) {
+    if (!db.PCComponent) {
+        throw 'PC Component functionality not available - table does not exist';
+    }
+
     const component = await getPCComponent(id);
     
     // Start transaction
@@ -127,6 +170,10 @@ async function _delete(id) {
 
 // Return PC component to stock
 async function returnToStock(id) {
+    if (!db.PCComponent) {
+        throw 'PC Component functionality not available - table does not exist';
+    }
+
     const component = await getPCComponent(id);
     
     // Start transaction
@@ -150,39 +197,62 @@ async function returnToStock(id) {
 
 // Helper function to get PC component
 async function getPCComponent(id) {
-    const component = await db.PCComponent.findByPk(id, {
-        include: [
-            { model: db.PC, as: 'pc', attributes: ['id', 'name'] },
-            { model: db.Item, as: 'item', attributes: ['id', 'name'] },
-            { model: db.Stock, as: 'stock', attributes: ['id', 'quantity', 'price'] }
-        ]
-    });
-    
-    if (!component) throw 'PC Component not found';
-    return component;
+    if (!db.PCComponent) {
+        throw 'PC Component functionality not available - table does not exist';
+    }
+
+    try {
+        const component = await db.PCComponent.findByPk(id, {
+            include: [
+                { model: db.PC, as: 'pc', attributes: ['id', 'name'] },
+                { model: db.Item, as: 'item', attributes: ['id', 'name'] },
+                { model: db.Stock, as: 'stock', attributes: ['id', 'quantity', 'price'] }
+            ]
+        });
+        
+        if (!component) throw 'PC Component not found';
+        return component;
+    } catch (error) {
+        console.log('⚠️  Error loading PC Component:', error.message);
+        throw 'PC Component not found';
+    }
 }
 
 // Helper function to get available stock for an item
 async function getAvailableStockForItem(itemId) {
-    // Get all stock entries for this item
-    const stockEntries = await db.Stock.findAll({
-        where: { itemId },
-        order: [['createdAt', 'ASC']]
-    });
+    if (!db.Stock) {
+        console.log('⚠️  Stock model not available - table may not exist');
+        return 0;
+    }
 
-    // Calculate total available stock (sum of all positive quantities)
-    let availableStock = 0;
-    stockEntries.forEach(entry => {
-        if (entry.quantity > 0) {
-            availableStock += entry.quantity;
-        }
-    });
+    try {
+        // Get all stock entries for this item
+        const stockEntries = await db.Stock.findAll({
+            where: { itemId },
+            order: [['createdAt', 'ASC']]
+        });
 
-    return availableStock;
+        // Calculate total available stock (sum of all positive quantities)
+        let availableStock = 0;
+        stockEntries.forEach(entry => {
+            if (entry.quantity > 0) {
+                availableStock += entry.quantity;
+            }
+        });
+
+        return availableStock;
+    } catch (error) {
+        console.log('⚠️  Error calculating available stock:', error.message);
+        return 0;
+    }
 }
 
 // Helper function to reduce stock quantities
 async function reduceStockQuantities(itemId, quantityToReduce, transaction) {
+    if (!db.Stock) {
+        throw 'Stock functionality not available - table does not exist';
+    }
+
     // Check available stock first
     const availableStock = await getAvailableStockForItem(itemId);
     if (availableStock < quantityToReduce) {
@@ -224,6 +294,10 @@ async function reduceStockQuantities(itemId, quantityToReduce, transaction) {
 
 // Helper function to restore stock quantities when component is deleted
 async function restoreStockQuantities(itemId, quantityToRestore, transaction) {
+    if (!db.Stock) {
+        throw 'Stock functionality not available - table does not exist';
+    }
+
     // Find existing stock entries with positive quantities (additions)
     const stockEntries = await db.Stock.findAll({
         where: { 

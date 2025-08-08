@@ -11,20 +11,31 @@ module.exports = {
 
 // Get all stock logs (include item + location)
 async function getAll() {
-    return await db.Stock.findAll({
-        include: [
-            { 
-                model: db.Item, 
-                as: 'item', 
-                attributes: ['id', 'name'],
-                include: [
-                    { model: db.Category, as: 'category', attributes: ['id', 'name'] },
-                    { model: db.Brand, as: 'brand', attributes: ['id', 'name'] }
-                ]
-            },
-            { model: db.StorageLocation, as: 'location', attributes: ['id', 'name'] }
-        ]
-    });
+    // Check if Stock model exists
+    if (!db.Stock) {
+        console.log('⚠️  Stock model not available - table may not exist');
+        return [];
+    }
+
+    try {
+        return await db.Stock.findAll({
+            include: [
+                { 
+                    model: db.Item, 
+                    as: 'item', 
+                    attributes: ['id', 'name'],
+                    include: [
+                        { model: db.Category, as: 'category', attributes: ['id', 'name'] },
+                        { model: db.Brand, as: 'brand', attributes: ['id', 'name'] }
+                    ]
+                },
+                { model: db.StorageLocation, as: 'location', attributes: ['id', 'name'] }
+            ]
+        });
+    } catch (error) {
+        console.log('⚠️  Error loading stocks:', error.message);
+        return [];
+    }
 }
 
 // Get single stock log
@@ -34,6 +45,10 @@ async function getById(id) {
 
 // Create new stock log
 async function create(params, userId) {
+    if (!db.Stock) {
+        throw 'Stock functionality not available - table does not exist';
+    }
+
     if (!params.itemId) throw 'Item is required';
     if (!params.locationId) throw 'Location is required';
     if (!params.price) throw 'Price is required';
@@ -55,6 +70,10 @@ async function create(params, userId) {
 
 // Update stock log
 async function update(id, params) {
+    if (!db.Stock) {
+        throw 'Stock functionality not available - table does not exist';
+    }
+
     const stock = await getStock(id);
 
     // Update fields
@@ -66,68 +85,103 @@ async function update(id, params) {
 
 // Delete stock log
 async function _delete(id) {
+    if (!db.Stock) {
+        throw 'Stock functionality not available - table does not exist';
+    }
+
     const stock = await getStock(id);
     await stock.destroy();
 }
 
 // Get available stock for an item
 async function getAvailableStock(itemId) {
-    const stockLogs = await db.Stock.findAll({
-        where: { itemId },
-        include: [
-            { 
-                model: db.Item, 
-                as: 'item', 
-                attributes: ['id', 'name'],
-                include: [
-                    { model: db.Category, as: 'category', attributes: ['id', 'name'] },
-                    { model: db.Brand, as: 'brand', attributes: ['id', 'name'] }
-                ]
-            },
-            { model: db.StorageLocation, as: 'location', attributes: ['id', 'name'] }
-        ]
-    });
+    if (!db.Stock) {
+        console.log('⚠️  Stock model not available - table may not exist');
+        return {
+            itemId,
+            availableStock: 0,
+            stockLogs: [],
+            totalAdded: 0,
+            totalDisposed: 0
+        };
+    }
 
-    // Calculate available stock
-    let availableStock = 0;
-    stockLogs.forEach(entry => {
-        if (entry.disposeId) {
-            // This is a disposal entry
-            availableStock -= entry.quantity;
-        } else {
-            // This is an addition entry
-            availableStock += entry.quantity;
-        }
-    });
+    try {
+        const stockLogs = await db.Stock.findAll({
+            where: { itemId },
+            include: [
+                { 
+                    model: db.Item, 
+                    as: 'item', 
+                    attributes: ['id', 'name'],
+                    include: [
+                        { model: db.Category, as: 'category', attributes: ['id', 'name'] },
+                        { model: db.Brand, as: 'brand', attributes: ['id', 'name'] }
+                    ]
+                },
+                { model: db.StorageLocation, as: 'location', attributes: ['id', 'name'] }
+            ]
+        });
 
-    // Ensure stock doesn't go negative
-    availableStock = Math.max(0, availableStock);
+        // Calculate available stock
+        let availableStock = 0;
+        stockLogs.forEach(entry => {
+            if (entry.disposeId) {
+                // This is a disposal entry
+                availableStock -= entry.quantity;
+            } else {
+                // This is an addition entry
+                availableStock += entry.quantity;
+            }
+        });
 
-    return {
-        itemId,
-        availableStock,
-        stockLogs,
-        totalAdded: stockLogs.filter(s => !s.disposeId).reduce((sum, s) => sum + s.quantity, 0),
-        totalDisposed: stockLogs.filter(s => s.disposeId).reduce((sum, s) => sum + s.quantity, 0)
-    };
+        // Ensure stock doesn't go negative
+        availableStock = Math.max(0, availableStock);
+
+        return {
+            itemId,
+            availableStock,
+            stockLogs,
+            totalAdded: stockLogs.filter(s => !s.disposeId).reduce((sum, s) => sum + s.quantity, 0),
+            totalDisposed: stockLogs.filter(s => s.disposeId).reduce((sum, s) => sum + s.quantity, 0)
+        };
+    } catch (error) {
+        console.log('⚠️  Error loading available stock:', error.message);
+        return {
+            itemId,
+            availableStock: 0,
+            stockLogs: [],
+            totalAdded: 0,
+            totalDisposed: 0
+        };
+    }
 }
 
 // Helper
 async function getStock(id) {
-    const stock = await db.Stock.findByPk(id, {
-        include: [
-            { 
-                model: db.Item, 
-                as: 'item', 
-                attributes: ['id', 'name'],
-                include: [
-                    { model: db.Category, as: 'category', attributes: ['id', 'name'] },
-                    { model: db.Brand, as: 'brand', attributes: ['id', 'name'] }
-                ]
-            },
-            { model: db.StorageLocation, as: 'location', attributes: ['id', 'name'] }
-        ]
-    });
-    if (!stock) throw 'Stock not found';
-    return stock;
+    if (!db.Stock) {
+        throw 'Stock functionality not available - table does not exist';
+    }
+
+    try {
+        const stock = await db.Stock.findByPk(id, {
+            include: [
+                { 
+                    model: db.Item, 
+                    as: 'item', 
+                    attributes: ['id', 'name'],
+                    include: [
+                        { model: db.Category, as: 'category', attributes: ['id', 'name'] },
+                        { model: db.Brand, as: 'brand', attributes: ['id', 'name'] }
+                    ]
+                },
+                { model: db.StorageLocation, as: 'location', attributes: ['id', 'name'] }
+            ]
+        });
+        if (!stock) throw 'Stock not found';
+        return stock;
+    } catch (error) {
+        console.log('⚠️  Error loading stock:', error.message);
+        throw 'Stock not found';
+    }
 }
