@@ -1,4 +1,26 @@
+const express = require('express');
+const router = express.Router();
 const storageLocationService = require('./storage-location.service');
+const authorize = require('../_middleware/authorize');
+const Role = require('../_helpers/role');
+const validateRequest = require('../_middleware/validate-request');
+const Joi = require('joi');
+
+// Validation schema
+function schema(req, res, next) {
+    const validation = Joi.object({
+        name: Joi.string().required(),
+        description: Joi.string().allow('')
+    });
+    validateRequest(req, next, validation);
+}
+
+// Routes
+router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getAll);
+router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getById);
+router.post('/', authorize([Role.SuperAdmin, Role.Admin]), schema, create);
+router.put('/:id', authorize([Role.SuperAdmin, Role.Admin]), schema, update);
+router.delete('/:id', authorize([Role.SuperAdmin, Role.Admin]), _delete);
 
 // Controller functions
 function getAll(req, res, next) {
@@ -31,10 +53,4 @@ function _delete(req, res, next) {
         .catch(next);
 }
 
-module.exports = {
-    getAll,
-    getById,
-    create,
-    update,
-    _delete
-};
+module.exports = router;

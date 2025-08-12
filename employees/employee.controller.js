@@ -3,19 +3,20 @@ const router = express.Router();
 const authorize = require('../_middleware/authorize');
 const Role = require('../_helpers/role');
 const employeeService = require('./employee.service');
+const db = require('../_helpers/db');
 
 // Routes
-router.post('/', authorize(Role.Admin), create);
-router.get('/', authorize(), getAll);
-router.get('/:id', authorize(), getById);
-router.put('/:id', authorize(Role.Admin), update);
-router.delete('/:id', authorize(Role.Admin), _delete);
-router.post('/:id/transfer', authorize(Role.Admin), transfer);
+router.post('/', authorize([Role.SuperAdmin, Role.Admin]), create);
+router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getAll);
+router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getById);
+router.put('/:id', authorize([Role.SuperAdmin, Role.Admin]), update);
+router.delete('/:id', authorize([Role.SuperAdmin, Role.Admin]), _delete);
+router.post('/:id', authorize([Role.SuperAdmin, Role.Admin]), transfer);
 
 // Handlers
 async function create(req, res, next) {
     try {
-        const employee = await employeeService.create(req.body);
+        const employee = await db.Employee.create(req.body);
         res.status(201).json(employee);
     } catch (err) {
         next(err);
@@ -24,7 +25,9 @@ async function create(req, res, next) {
 
 async function getAll(req, res, next) {
     try {
-        const employees = await employeeService.getAll();
+        const employees = await db.Employee.findAll({
+            include: [{model: db.User},{model: db.Department}]
+        });
         res.json(employees);
     } catch (err) {
         next(err);
@@ -33,8 +36,10 @@ async function getAll(req, res, next) {
 
 async function getById(req, res, next) {
     try {
-        const employee = await employeeService.getById(req.params.id);
-        if (!employee) return res.status(404).json({ message: 'Employee not found' });
+        const employee = await db.Employee.findByPk(req.params.id, {
+            include : [{model: db.User}, {model:db.Department}]
+        });
+        if(!employee) throw new Error('Employee not found');
         res.json(employee);
     } catch (err) {
         next(err);
@@ -43,7 +48,9 @@ async function getById(req, res, next) {
 
 async function update(req, res, next) {
     try {
-        const employee = await employeeService.update(req.params.id, req.body);
+        const employee = await db.Employee.findByPk(req.params.id);
+        if(!employee) throw new Error('Employee not found');
+        await employee.update(req.body);
         res.json(employee);
     } catch (err) {
         next(err);
@@ -52,8 +59,10 @@ async function update(req, res, next) {
 
 async function _delete(req, res, next) {
     try {
-        await employeeService.delete(req.params.id);
-        res.json({ message: 'Employee deleted' });
+        const employee = await db.Employee.findByPk(req.params.id);
+        if(!employee) throw new Error('Employee not found');
+        await employee.destroy();
+        res.json({message:'Employee deleted'});
     } catch (err) {
         next(err);
     }
@@ -61,7 +70,17 @@ async function _delete(req, res, next) {
 
 async function transfer(req, res, next) {
     try {
-        await employeeService.transfer(req.params.id, req.body.departmentId);
+        const employee = await db.Employee.findByPk(req.params.id);
+        if (!employee) throw new Error('Employee not found');
+        
+        await employee.update({ departmentId: req.body.departmentId });
+        
+        await db.Workflow.create({
+            employeeId: employee.id,
+            type: 'Transfer',
+            details: { newDepartmentId: req.body.departmentId }
+        });
+        
         res.json({ message: 'Employee transferred' });
     } catch (err) {
         next(err);

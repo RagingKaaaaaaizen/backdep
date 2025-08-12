@@ -1,16 +1,85 @@
+const express = require('express');
+const router = express.Router();
 const db = require('../_helpers/db');
+const authorize = require('../_middleware/authorize');
+const Role = require('../_helpers/role');
+const validateRequest = require('../_middleware/validate-request');
+const Joi = require('joi');
 
-module.exports = {
-    getAll,
-    getById,
-    create,
-    update,
-    delete: _delete,
-    getSpecificationFields
-};
+// Validation schemas
+function createSchema(req, res, next) {
+    const schema = Joi.object({
+        name: Joi.string().required(),
+        serialNumber: Joi.string().allow(''),
+        roomLocationId: Joi.number().required(),
+        status: Joi.string().valid('Active', 'Inactive', 'Maintenance', 'Retired').default('Active'),
+        assignedTo: Joi.string().allow(''),
+        notes: Joi.string().allow('')
+    });
+    validateRequest(req, next, schema);
+}
 
+function updateSchema(req, res, next) {
+    const schema = Joi.object({
+        name: Joi.string().empty(''),
+        serialNumber: Joi.string().allow(''),
+        roomLocationId: Joi.number().empty(''),
+        status: Joi.string().valid('Active', 'Inactive', 'Maintenance', 'Retired').empty(''),
+        assignedTo: Joi.string().allow(''),
+        notes: Joi.string().allow('')
+    });
+    validateRequest(req, next, schema);
+}
+
+// Routes
+router.get('/public', getAll);
+router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getAll);
+router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getById);
+router.post('/', authorize([Role.SuperAdmin, Role.Admin]), createSchema, create);
+router.put('/:id', authorize([Role.SuperAdmin, Role.Admin]), updateSchema, update);
+router.delete('/:id', authorize([Role.SuperAdmin, Role.Admin]), deletePC);
+router.get('/specifications/:categoryId', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getSpecificationFields);
+
+// Controller functions
+function getAll(req, res, next) {
+    getAllPCs()
+        .then(pcs => res.json(pcs))
+        .catch(next);
+}
+
+function getById(req, res, next) {
+    getPCById(req.params.id)
+        .then(pc => pc ? res.json(pc) : res.sendStatus(404))
+        .catch(next);
+}
+
+function create(req, res, next) {
+    createPC(req.body, req.user.id)
+        .then(pc => res.json(pc))
+        .catch(next);
+}
+
+function update(req, res, next) {
+    updatePC(req.params.id, req.body)
+        .then(pc => res.json(pc))
+        .catch(next);
+}
+
+function deletePC(req, res, next) {
+    deletePCById(req.params.id)
+        .then(() => res.json({ message: 'PC deleted successfully' }))
+        .catch(next);
+}
+
+function getSpecificationFields(req, res, next) {
+    getSpecificationFieldsByCategory(req.params.categoryId)
+        .then(fields => res.json(fields))
+        .catch(next);
+}
+
+// Service functions
 // Get all PCs with room location
-async function getAll() {
+async function getAllPCs() {
     // Check if PC model exists
     if (!db.PC) {
         console.log('⚠️  PC model not available - table may not exist');
@@ -28,12 +97,12 @@ async function getAll() {
 }
 
 // Get single PC by ID
-async function getById(id) {
+async function getPCById(id) {
     return await getPC(id);
 }
 
 // Create new PC
-async function create(params, userId) {
+async function createPC(params, userId) {
     if (!db.PC) {
         throw 'PC functionality not available - table does not exist';
     }
@@ -57,7 +126,7 @@ async function create(params, userId) {
 }
 
 // Update PC
-async function update(id, params) {
+async function updatePC(id, params) {
     if (!db.PC) {
         throw 'PC functionality not available - table does not exist';
     }
@@ -83,7 +152,7 @@ async function update(id, params) {
 }
 
 // Delete PC
-async function _delete(id) {
+async function deletePCById(id) {
     if (!db.PC) {
         throw 'PC functionality not available - table does not exist';
     }
@@ -93,7 +162,7 @@ async function _delete(id) {
 }
 
 // Get specification fields based on category (kept for compatibility)
-async function getSpecificationFields(categoryId) {
+async function getSpecificationFieldsByCategory(categoryId) {
     if (!db.Category) {
         throw 'Category functionality not available';
     }
@@ -151,4 +220,6 @@ async function getPC(id) {
         console.log('⚠️  Error loading PC:', error.message);
         throw 'PC not found';
     }
-} 
+}
+
+module.exports = router; 

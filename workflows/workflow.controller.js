@@ -4,7 +4,7 @@ const workflowService = require('./workflow.service');
 const authorize = require('../_middleware/authorize');
 const Role = require('../_helpers/role');
 
-// routes
+// Routes
 router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getAll);
 router.get('/employee/:employeeId', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getByEmployeeId);
 router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getById);
@@ -14,10 +14,7 @@ router.delete('/:id', authorize([Role.SuperAdmin, Role.Admin]), _delete);
 router.put('/:id/status', authorize([Role.SuperAdmin, Role.Admin]), updateStatus);
 router.post('/onboarding', authorize([Role.SuperAdmin, Role.Admin]), onboarding);
 
-module.exports = router;
-
-// route functions
-
+// Controller functions
 async function getAll(req, res, next) {
     try {
         const workflows = await workflowService.getAll();
@@ -92,3 +89,5 @@ async function onboarding(req, res, next) {
         next(err);
     }
 }
+
+module.exports = router;

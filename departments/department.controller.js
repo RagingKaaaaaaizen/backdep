@@ -3,19 +3,34 @@ const router = express.Router();
 const departmentService = require('./department.service');
 const authorize = require('../_middleware/authorize');
 const Role = require('../_helpers/role');
+const db = require('../_helpers/db');
 
 // Routes
-router.get('/', authorize(), getAll);
-router.get('/:id', authorize(), getById);
-router.post('/', authorize(Role.Admin), create);
-router.put('/:id', authorize(Role.Admin), update);
-router.delete('/:id', authorize(Role.Admin), _delete);
+router.post('/', authorize([Role.SuperAdmin, Role.Admin]), create);
+router.get('/', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getAll);
+router.get('/:id', authorize([Role.SuperAdmin, Role.Admin, Role.Viewer]), getById);
+router.put('/:id', authorize([Role.SuperAdmin, Role.Admin]), update);
+router.delete('/:id', authorize([Role.SuperAdmin, Role.Admin]), _delete);
 
 // Handlers
+async function create(req, res, next) {
+    try {
+        const department = await db.Department.create(req.body);
+        res.status(201).json(department);
+    } catch (err) {
+        next(err);
+    }
+}
+
 async function getAll(req, res, next) {
     try {
-        const departments = await departmentService.getAll();
-        res.json(departments);
+        const departments = await db.Department.findAll({
+            include: [{ model: db.Employee, attributes: ['id'] }]
+        });
+        res.json(departments.map(d => ({
+            ...d.toJSON(),
+            employeeCount: d.Employees.length
+        })));
     } catch (err) {
         next(err);
     }
@@ -23,18 +38,11 @@ async function getAll(req, res, next) {
 
 async function getById(req, res, next) {
     try {
-        const department = await departmentService.getById(req.params.id);
-        if (!department) return res.status(404).json({ message: 'Department not found' });
+        const department = await db.Department.findByPk(req.params.id, {
+            include: [{ model: db.Employee }]
+        });
+        if (!department) throw new Error('Department not found');
         res.json(department);
-    } catch (err) {
-        next(err);
-    }
-}
-
-async function create(req, res, next) {
-    try {
-        const department = await departmentService.create(req.body);
-        res.status(201).json(department);
     } catch (err) {
         next(err);
     }
@@ -42,7 +50,9 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
     try {
-        const department = await departmentService.update(req.params.id, req.body);
+        const department = await db.Department.findByPk(req.params.id);
+        if (!department) throw new Error('Department not found');
+        await department.update(req.body);
         res.json(department);
     } catch (err) {
         next(err);
@@ -51,8 +61,10 @@ async function update(req, res, next) {
 
 async function _delete(req, res, next) {
     try {
-        await departmentService.delete(req.params.id);
-        res.json({ message: 'Department deleted successfully' });
+        const department = await db.Department.findByPk(req.params.id);
+        if (!department) throw new Error('Department not found');
+        await department.destroy();
+        res.json({ message: 'Department deleted' });
     } catch (err) {
         next(err);
     }
